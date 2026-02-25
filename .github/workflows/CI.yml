@@ -1,13 +1,31 @@
-name: Clicksound CI
-run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
-on: [push]
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
 jobs:
-  Explore-GitHub-Actions:
+  build:
+    name: Build & Vet
     runs-on: ubuntu-latest
+
     steps:
-      - name: Check out repository code
+      - name: Checkout
         uses: actions/checkout@v4
-      - name: Compile the clicksound
-        run: |
-          gcc clicksound.c -o clicksound
-      - run: echo "🍏 This job's status is ${{ job.status }}."
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install ALSA headers
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+
+      - name: Go vet
+        run: go vet ./...
+
+      - name: Build
+        run: go build -o clicksound .

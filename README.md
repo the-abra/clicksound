@@ -4,90 +4,91 @@
 
 ClickSound is a simple Linux application that detects keyboard events and plays a sound (e.g., `pop.mp3`) every time a key is pressed. It runs in the background and provides an interactive way to add sound feedback to your typing experience.
 
-**Note to Developers:**
-
-I chose C for this project because, after extensive testing with other languages such as Go, Rust, Python, and Ruby, none of their libraries were capable of performing this task reliably. Despite my efforts with multiple approaches, no solution yielded consistent results. This is why I ultimately decided to go with C – it simply works, and that’s what matters.
+**Note to Developers:** This is a Go port optimized for Linux. It reads keyboard events directly from `/dev/input/event*` and plays audio via ALSA using the [Oto](https://github.com/ebitengine/oto) engine — no PulseAudio or PipeWire dependency required.
 
 ## Features
 
-- Automatically detects a connected keyboard device.
-- Plays a sound file (e.g., `pop.mp3`) every time a key is pressed.
-- Runs the sound-playing process in the background, allowing the main program to continue detecting events.
-- Supports any `.mp3` or `.wav` sound file.
+- Real-time keyboard event detection via Linux evdev
+- Concurrent sound playback — no delay between key presses
+- Colorized CLI output with Unicode symbols
+- 7 preinstalled sound themes (mechanical, bubble pop, steampunk, etc.)
+- Support for external sound files via absolute path
+- Runs as a background daemon
+- Zero-latency — sounds are pre-decoded into memory
+
 
 ## Requirements
 
-- Linux-based operating system.
-- `paplay` command-line tool (part of the `pulseaudio-utils` package).
-- Access to `/dev/input` devices (may require root or group permissions).
-  
+- **Linux** (kernel with evdev support)
+- **Go 1.25+** (for building from source)
+- **ALSA dev headers** — `sudo apt install libasound2-dev` (Debian/Ubuntu) or `sudo dnf install alsa-lib-devel` (Fedora)
+- **Root access** — required to read `/dev/input/event*` devices (or use `pkexec`) (or use `sudo usermod -aG input $USER`)
+
 ## Installation
 
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/the-abra/clicksound.git
-   cd clicksound
-   ```
+### Build from Source
 
-2. **Compile the Program**:
-   ```bash
-   gcc -o clicksound clicksound.c
-   ```
-
-3. **Install Dependencies**:
-   Make sure you have `paplay` installed on your system. If it’s not installed, you can do so via your package manager:
-   ```bash
-   sudo apt install pulseaudio-utils
-   ```
-
-4. **Grant Permissions** (Optional):
-   You may need to run the program as root or add your user to the `input` group to access input devices:
-   ```bash
-   sudo usermod -aG input $USER
-   ```
+```bash
+git clone https://github.com/the-abra/clicksound.git
+cd clicksound
+go build -o clicksound .
+```
 
 ## Usage
 
-To run the program and play a sound every time a key is pressed, execute the following command:
+### CLI Setup (root privileges may be required)
 
 ```bash
-./clicksound sounds/pop.mp3
+ln -s $(pwd)/clicksound /usr/local/bin/clicksound
+clicksound help
 ```
 
-Replace `/path/to/sounds/pop.mp3` with the actual path to your desired sound file.
-
-### Example:
+OR
 
 ```bash
-nohup ./clicksound sounds/pop.mp3 &> /dev/null & # Works on background
-```
-```bash
-kill $(ps -aux | grep clicksound | head -n1 | awk '{print $2}') # kill the clicksound
-```
-
-### CLI Setup
-
-```bash
-sudo ln -s $(pwd)/clicksound-cli.sh /usr/local/bin/clicksound-cli
-clicksound-cli help
+mv clicksound /usr/share/clicksound
+chmod +x /usr/share/clicksound/clicksound
+ln -s /usr/share/clicksound/clicksound /usr/local/bin/clicksound
+clicksound help
 ```
 
 ### File Structure
 
 ```
 clicksound/
-├── clicksound.c        # Source code for the ClickSound program
-├── clicksound          # Pre-Compiled version of source code
-├── sounds/
-│   └── pop.mp3         # Sound to be played on key press
-└── README.md           # Project documentation
+├── main.go                  # Entry point
+├── cmd/
+│   └── cli.go               # CLI commands and daemon logic
+├── pkg/
+│   ├── audio/
+│   │   └── player.go        # MP3 decoding and playback
+│   ├── keyboard/
+│   │   └── device.go        # Keyboard detection and event listener
+│   └── logger/
+│       └── logger.go        # Colorized TTY-aware logger
+├── sounds/                  # Preinstalled sound themes
+│   ├── bubble-pop.mp3
+│   ├── mech1.mp3
+│   ├── mechsoft1.mp3
+│   ├── mechsoft2.mp3
+│   ├── pop.mp3
+│   ├── single.mp3
+│   └── steampunk.mp3
+└── .github/workflows/
+    └── CI.yml               # GitHub Actions CI pipeline
 ```
 
-### Key Features
 
-- **Keyboard Event Detection**: Automatically detects keyboard devices in the `/dev/input` directory and listens for key events.
-- **Sound Playback**: The sound file is played using the `paplay` command in the background whenever a key is pressed.
-- **Non-Blocking**: The sound playback does not block the key event detection, allowing real-time keyboard monitoring.
+### Commands
+
+| Command | Description |
+|---|---|
+| `clicksound list` | List all preinstalled sounds |
+| `clicksound start <sound>` | Start with a preinstalled sound |
+| `clicksound start /path/to/file.mp3` | Start with an external sound file |
+| `clicksound stop` | Stop the background daemon |
+| `clicksound help` | Show help message |
+| `clicksound update` | Check for updates |
 
 ### License
 
