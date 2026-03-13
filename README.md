@@ -46,9 +46,9 @@ clicksound help
 OR
 
 ```bash
-mv clicksound /usr/share/clicksound
-chmod +x /usr/share/clicksound/clicksound
-ln -s /usr/share/clicksound/clicksound /usr/local/bin/clicksound
+mv clicksound /usr/local/share/clicksound
+chmod +x /usr/local/share/clicksound/clicksound
+ln -s /usr/local/share/clicksound/clicksound /usr/local/bin/clicksound
 clicksound help
 ```
 
