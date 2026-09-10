@@ -1,0 +1,6 @@
+# Build output
+/clicksound
+
+# Test and coverage artifacts
+*.test
+coverage.out
