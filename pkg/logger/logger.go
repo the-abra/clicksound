@@ -1,3 +1,4 @@
+// Package logger provides small, TTY-aware, colorized output helpers.
 package logger
 
 import (
@@ -29,6 +30,19 @@ const (
 	SymArrow   = "→"
 )
 
+// colorEnabled reports whether ANSI colors should be emitted. It honours the
+// NO_COLOR (https://no-color.org) and FORCE_COLOR conventions and otherwise
+// enables colors only for a TTY.
+func colorEnabled() bool {
+	if _, ok := os.LookupEnv("NO_COLOR"); ok {
+		return false
+	}
+	if _, ok := os.LookupEnv("FORCE_COLOR"); ok {
+		return true
+	}
+	return isTTY(os.Stdout) || isTTY(os.Stderr)
+}
+
 // isTTY checks whether the given file descriptor is a terminal.
 func isTTY(f *os.File) bool {
 	info, err := f.Stat()
@@ -38,83 +52,55 @@ func isTTY(f *os.File) bool {
 	return (info.Mode() & os.ModeCharDevice) != 0
 }
 
-// colorize wraps text in ANSI codes if stdout is a TTY.
 func colorize(color, text string) string {
-	if !isTTY(os.Stdout) {
-		return text
-	}
-	return color + text + reset
-}
-
-// colorizeErr wraps text in ANSI codes if stderr is a TTY.
-func colorizeErr(color, text string) string {
-	if !isTTY(os.Stderr) {
+	if !colorEnabled() {
 		return text
 	}
 	return color + text + reset
 }
 
 // Bold returns bold text (TTY-aware).
-func Bold(text string) string {
-	return colorize(bold, text)
-}
+func Bold(text string) string { return colorize(bold, text) }
 
 // Dim returns dim text (TTY-aware).
-func Dim(text string) string {
-	return colorize(dim, text)
-}
+func Dim(text string) string { return colorize(dim, text) }
 
-// Cyan returns cyan text (TTY-aware).
-func Cyan(text string) string {
-	return colorize(cyan, text)
-}
-
-// Magenta returns magenta text (TTY-aware).
-func Magenta(text string) string {
-	return colorize(magenta, text)
-}
+// Red returns red text (TTY-aware).
+func Red(text string) string { return colorize(red, text) }
 
 // Green returns green text (TTY-aware).
-func Green(text string) string {
-	return colorize(green, text)
-}
+func Green(text string) string { return colorize(green, text) }
 
 // Yellow returns yellow text (TTY-aware).
-func Yellow(text string) string {
-	return colorize(yellow, text)
-}
+func Yellow(text string) string { return colorize(yellow, text) }
 
 // Blue returns blue text (TTY-aware).
-func Blue(text string) string {
-	return colorize(blue, text)
-}
+func Blue(text string) string { return colorize(blue, text) }
+
+// Magenta returns magenta text (TTY-aware).
+func Magenta(text string) string { return colorize(magenta, text) }
+
+// Cyan returns cyan text (TTY-aware).
+func Cyan(text string) string { return colorize(cyan, text) }
 
 // Info prints an informational message to stdout.
 func Info(format string, a ...any) {
-	msg := fmt.Sprintf(format, a...)
-	sym := colorize(cyan, SymInfo)
-	fmt.Printf("%s %s\n", sym, msg)
+	fmt.Printf("%s %s\n", colorize(cyan, SymInfo), fmt.Sprintf(format, a...))
 }
 
 // Success prints a success message to stdout.
 func Success(format string, a ...any) {
-	msg := fmt.Sprintf(format, a...)
-	sym := colorize(green, SymSuccess)
-	fmt.Printf("%s %s\n", sym, msg)
+	fmt.Printf("%s %s\n", colorize(green, SymSuccess), fmt.Sprintf(format, a...))
 }
 
 // Warn prints a warning message to stderr.
 func Warn(format string, a ...any) {
-	msg := fmt.Sprintf(format, a...)
-	sym := colorizeErr(yellow, SymWarn)
-	fmt.Fprintf(os.Stderr, "%s %s\n", sym, msg)
+	fmt.Fprintf(os.Stderr, "%s %s\n", colorize(yellow, SymWarn), fmt.Sprintf(format, a...))
 }
 
 // Error prints an error message to stderr.
 func Error(format string, a ...any) {
-	msg := fmt.Sprintf(format, a...)
-	sym := colorizeErr(red, SymError)
-	fmt.Fprintf(os.Stderr, "%s %s\n", sym, msg)
+	fmt.Fprintf(os.Stderr, "%s %s\n", colorize(red, SymError), fmt.Sprintf(format, a...))
 }
 
 // Fatal prints an error message to stderr and exits with code 1.
@@ -125,11 +111,15 @@ func Fatal(format string, a ...any) {
 
 // Bullet prints a bulleted list item to stdout.
 func Bullet(text string) {
-	sym := colorize(dim, SymBullet)
-	fmt.Printf("  %s %s\n", sym, text)
+	fmt.Printf("  %s %s\n", colorize(dim, SymBullet), text)
 }
 
 // Header prints a bold colored header line.
 func Header(text string) {
 	fmt.Println(colorize(bold+cyan, text))
+}
+
+// Hint prints an indented, dimmed suggestion line to stderr.
+func Hint(format string, a ...any) {
+	fmt.Fprintf(os.Stderr, "  %s %s\n", colorize(dim, SymArrow), colorize(dim, fmt.Sprintf(format, a...)))
 }
